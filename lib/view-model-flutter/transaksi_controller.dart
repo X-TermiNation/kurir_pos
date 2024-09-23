@@ -12,7 +12,7 @@ Future<String?> createqris(int amount, BuildContext context) async {
       'amount': amount,
       'callback_url': "https://yourcallbackurl.com",
     };
-    final url = 'http://10.0.2.2:3002/xendit/create-qris';
+    final url = 'http://192.168.1.197:3002/xendit/create-qris';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -42,7 +42,7 @@ void createInvoice(String external_id, int amount, String payer_email,
       'payer_email': payer_email,
       'description': description,
     };
-    final url = 'http://10.0.2.2:3002/xendit/create-qris';
+    final url = 'http://192.168.1.197:3002/xendit/create-qris';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -83,7 +83,7 @@ Future<Map<String, dynamic>?> addTrans(
       'status': status,
       'Items': items
     };
-    final url = 'http://10.0.2.2:3002/transaksi/addtrans/$id_cabang';
+    final url = 'http://192.168.1.197:3002/transaksi/addtrans/$id_cabang';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -109,7 +109,7 @@ Future<List<Map<String, dynamic>>> getTrans() async {
   final dataStorage = GetStorage();
   String id_cabang = dataStorage.read('id_cabang');
   final request =
-      Uri.parse('http://10.0.2.2:3002/transaksi/translist/$id_cabang');
+      Uri.parse('http://192.168.1.197:3002/transaksi/translist/$id_cabang');
   final response = await http.get(request);
   if (response.statusCode == 200 || response.statusCode == 304) {
     final Map<String, dynamic> jsonData = json.decode(response.body);
@@ -128,7 +128,7 @@ Future<Map<String, dynamic>?> getTransById(String trans_id) async {
   String id_cabang = dataStorage.read('id_cabang');
 
   final request = Uri.parse(
-      'http://10.0.2.2:3002/transaksi/translist/$id_cabang/$trans_id');
+      'http://192.168.1.197:3002/transaksi/translist/$id_cabang/$trans_id');
   final response = await http.get(request);
 
   if (response.statusCode == 200 || response.statusCode == 304) {
@@ -162,7 +162,7 @@ Future<Map<String, dynamic>?> addDelivery(
       'alamat_tujuan': alamat_tujuan,
       'transaksi_id': transaksi_id,
     };
-    final url = 'http://10.0.2.2:3002/transaksi/addDelivery/$id_cabang';
+    final url = 'http://192.168.1.197:3002/transaksi/addDelivery/$id_cabang';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -191,7 +191,7 @@ Future<List<dynamic>?> showDelivery(
   String id_cabang = dataStorage.read('id_cabang');
 
   try {
-    final url = 'http://10.0.2.2:3002/transaksi/showDelivery/$id_cabang';
+    final url = 'http://192.168.1.197:3002/transaksi/showDelivery/$id_cabang';
     final response = await http.get(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -228,7 +228,7 @@ Future<Map<String, dynamic>> generateInvoice(
     final DateFormat formatter = DateFormat('dd/MM/yyyy');
     String dateinvoice = formatter.format(date_trans);
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:3002/invoice/generate-invoice'),
+      Uri.parse('http://192.168.1.197:3002/invoice/generate-invoice'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -266,7 +266,7 @@ Future<Map<String, dynamic>> generateInvoice(
 
 Future<bool> sendInvoiceByEmail(
     String invoicePath, String receiverEmail, BuildContext context) async {
-  final Uri uri = Uri.parse('http://10.0.2.2:3002/invoice/invoice-email');
+  final Uri uri = Uri.parse('http://192.168.1.197:3002/invoice/invoice-email');
   try {
     final response = await http.post(
       uri,
