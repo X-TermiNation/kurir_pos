@@ -1,11 +1,17 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:kurir_pos/View/tools/websocket_service.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geocoding/geocoding.dart';
 import 'package:kurir_pos/view-model-flutter/transaksi_controller.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 
 class CourierDashboard extends StatelessWidget {
   @override
@@ -98,6 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (context) => MapScreen(
                             currentLocation: currentLocation,
                             destinationAddress: address,
+                            telp_number: "#",
+                            id_transaksi: "#",
                           ),
                         ),
                       );
@@ -134,6 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   currentLocation: currentLocation,
                                   destinationAddress:
                                       "${delivery["alamat_tujuan"]}",
+                                  telp_number: "${delivery["no_telp_cust"]}",
+                                  id_transaksi: "${delivery["_id"]}",
                                 ),
                               ),
                             );
@@ -156,8 +166,14 @@ class _HomeScreenState extends State<HomeScreen> {
 class MapScreen extends StatefulWidget {
   final Position currentLocation;
   final String destinationAddress;
+  final String telp_number;
+  final String id_transaksi;
 
-  MapScreen({required this.currentLocation, required this.destinationAddress});
+  MapScreen(
+      {required this.currentLocation,
+      required this.destinationAddress,
+      required this.telp_number,
+      required this.id_transaksi});
 
   @override
   _MapScreenState createState() => _MapScreenState();
@@ -165,42 +181,68 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   List<LatLng> polylinePoints = [];
+  LatLng? currentPosition;
+  bool isDelivering = false;
+  late WebSocketService _webSocketService;
+  StreamSubscription<Position>? positionStreamSubscription;
+  XFile? _image;
 
   @override
   void initState() {
     super.initState();
     _getDestinationCoordinates(widget.destinationAddress);
+
+    currentPosition = LatLng(
+      widget.currentLocation.latitude,
+      widget.currentLocation.longitude,
+    );
+
+    _webSocketService = WebSocketService('ws://192.168.1.197:8080/ws');
+
+    // Listen for live location updates from the WebSocket server
+    _webSocketService.onMessage.listen((message) {
+      final data = jsonDecode(message);
+      if (data['type'] == 'live_location_update') {
+        print(
+            'Received live position: Latitude: ${data['latitude']}, Longitude: ${data['longitude']}');
+        // Update current position to reflect the received data
+        setState(() {
+          currentPosition = LatLng(data['latitude'], data['longitude']);
+        });
+      }
+    });
   }
 
+  @override
+  void dispose() {
+    positionStreamSubscription?.cancel();
+    _webSocketService.close(); // Close WebSocket connection
+    super.dispose();
+  }
+
+  // Get destination coordinates
   Future<void> _getDestinationCoordinates(String address) async {
     try {
-      print('Searching for address: $address'); // Debugging
       List<Location> locations = await locationFromAddress(address);
       if (locations.isNotEmpty) {
         double destinationLat = locations.first.latitude;
         double destinationLng = locations.first.longitude;
         await _fetchDirections(destinationLng, destinationLat);
       } else {
-        print('No locations found for the address.'); // Debugging
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Could not find destination address.'),
         ));
       }
     } catch (e) {
-      print('Error: $e'); // Debugging
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Could not find destination address.'),
       ));
     }
   }
 
+  // Fetch route directions
   Future<void> _fetchDirections(
       double destinationLng, double destinationLat) async {
-    print('Fetching directions...');
-    print(
-        'Start: (${widget.currentLocation.longitude}, ${widget.currentLocation.latitude}), End: ($destinationLng, $destinationLat)');
-
-    // Replace 'YOUR_API_KEY' with your actual OpenRouteService API key
     final String apiKey =
         '5b3ce3597851110001cf6248e4d9fd9aea234edf85a286746755089e';
 
@@ -217,10 +259,42 @@ class _MapScreenState extends State<MapScreen> {
         polylinePoints = points;
       });
     } else {
-      print(
-          'Failed to load directions: ${response.statusCode} ${response.body}'); // Added logging
       throw Exception('Failed to load directions');
     }
+  }
+
+// Start delivery and track live location
+  void _startDelivery() {
+    // Start sending the initial location to the server
+    _sendLocationToServer(
+        widget.currentLocation.latitude, widget.currentLocation.longitude);
+
+    // Listen for live location updates
+    positionStreamSubscription = Geolocator.getPositionStream(
+      locationSettings: LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 2, // Updates every 2 meters
+      ),
+    ).listen((Position position) {
+      setState(() {
+        currentPosition = LatLng(position.latitude, position.longitude);
+      });
+      // Send updated position to the server
+      _sendLocationToServer(position.latitude, position.longitude);
+    });
+
+    setState(() {
+      isDelivering = true; // Change state to indicate delivery has started
+    });
+  }
+
+  // Send location to the WebSocket server
+  void _sendLocationToServer(double latitude, double longitude) {
+    _webSocketService.sendMessage(jsonEncode({
+      'id_transaksi': widget.id_transaksi,
+      'latitude': latitude,
+      'longitude': longitude,
+    }));
   }
 
   @override
@@ -229,56 +303,229 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppBar(
         title: Text('Directions'),
       ),
-      body: FlutterMap(
-        options: MapOptions(
-          initialCenter: LatLng(widget.currentLocation.latitude,
-              widget.currentLocation.longitude),
-          initialZoom: 13.0,
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            subdomains: ['a', 'b', 'c'],
+      body: SlidingUpPanel(
+        panel: _buildSlidingPanel(context),
+        minHeight: 100,
+        maxHeight: MediaQuery.of(context).size.height * 0.4,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        body: FlutterMap(
+          options: MapOptions(
+            initialCenter: LatLng(widget.currentLocation.latitude,
+                widget.currentLocation.longitude),
+            initialZoom: 13.0,
           ),
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: polylinePoints,
-                strokeWidth: 4.0,
-                color: Colors.blue,
-              ),
-            ],
-          ),
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: LatLng(widget.currentLocation.latitude,
-                    widget.currentLocation.longitude),
-                width: 80,
-                height: 80,
-                child: Icon(
-                  Icons.location_on,
-                  color: Colors.red,
-                  size: 40,
+          children: [
+            TileLayer(
+              urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+              subdomains: ['a', 'b', 'c'],
+            ),
+            PolylineLayer(
+              polylines: [
+                Polyline(
+                  points: polylinePoints,
+                  strokeWidth: 4.0,
+                  color: Colors.blue,
                 ),
-              ),
-              if (polylinePoints
-                  .isNotEmpty) // Check if polylinePoints is not empty
+              ],
+            ),
+            MarkerLayer(
+              markers: [
+                // Current position marker (live location)
                 Marker(
-                  point: LatLng(polylinePoints.last.latitude,
-                      polylinePoints.last.longitude), // Destination marker
+                  point: currentPosition ??
+                      LatLng(widget.currentLocation.latitude,
+                          widget.currentLocation.longitude),
                   width: 80,
                   height: 80,
                   child: Icon(
-                    Icons.location_on,
-                    color: Colors.green,
+                    isDelivering
+                        ? Icons.motorcycle
+                        : Icons
+                            .place, // Use motorcycle icon if delivering, otherwise a generic marker icon
+                    color: Colors.blue,
                     size: 40,
                   ),
                 ),
-            ],
+                // Destination marker
+                if (polylinePoints.isNotEmpty)
+                  Marker(
+                    point: LatLng(polylinePoints.last.latitude,
+                        polylinePoints.last.longitude),
+                    width: 80,
+                    height: 80,
+                    child: Icon(
+                      Icons.location_on,
+                      color: Colors.green,
+                      size: 40,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Sliding panel for delivery information
+  Widget _buildSlidingPanel(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            spreadRadius: 1,
+            blurRadius: 10,
           ),
         ],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              margin: EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          Text(
+            'Delivery Information',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 16),
+          Text('Alamat Customer: ${widget.destinationAddress}'),
+          SizedBox(height: 8),
+          Text('ID Transaksi: ${widget.id_transaksi}'),
+          SizedBox(height: 8),
+          Text('No. Telepon: ${widget.telp_number}'),
+          SizedBox(height: 32),
+          Center(
+              child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  if (isDelivering) {
+                    _startDelivery();
+                  } else {
+                    setState(() {
+                      isDelivering = true;
+                    });
+                  }
+                },
+                child: Text(isDelivering ? 'Delivering...' : 'Start Delivery'),
+              ),
+              if (isDelivering)
+                ElevatedButton(
+                  onPressed: () {
+                    _showFinishDeliveryDialog(); // Correctly calling the dialog method
+                  },
+                  child: Text("Finish Delivery"),
+                ),
+            ],
+          )),
+        ],
+      ),
+    );
+  }
+
+  // Method to show the finish delivery dialog
+  void _showFinishDeliveryDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return FinishDeliveryDialog(
+          image: _image, // Pass the current image
+          onImageTaken: (newImage) {
+            setState(() {
+              _image = newImage; // Update the image taken in parent state
+            });
+          },
+        );
+      },
+    );
+  }
+}
+
+class FinishDeliveryDialog extends StatefulWidget {
+  final XFile? image;
+  final Function(XFile?) onImageTaken;
+
+  FinishDeliveryDialog({required this.image, required this.onImageTaken});
+
+  @override
+  _FinishDeliveryDialogState createState() => _FinishDeliveryDialogState();
+}
+
+class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
+  late XFile? _image;
+
+  @override
+  void initState() {
+    super.initState();
+    _image = widget.image; // Initialize the image from widget
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Finish Delivery'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_image != null) ...[
+            Image.file(
+              File(_image!.path),
+              height: 150,
+              width: 150,
+              fit: BoxFit.cover,
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _image = null; // Reset image to null
+                });
+                widget.onImageTaken(null); // Notify parent to delete the photo
+              },
+              child: Text('Delete Photo'),
+            ),
+          ] else ...[
+            Text('No photo taken.'),
+          ],
+        ],
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: () async {
+            final pickedFile = await ImagePicker().pickImage(
+              source: ImageSource.camera,
+            );
+            if (pickedFile != null) {
+              setState(() {
+                _image = pickedFile; // Update local state
+              });
+              widget.onImageTaken(
+                  pickedFile); // Notify parent about the new photo
+            }
+          },
+          child: Text('Take Photo'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // Close the dialog
+          },
+          child: Text('Finish'),
+        ),
+      ],
     );
   }
 }
