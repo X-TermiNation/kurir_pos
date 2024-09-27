@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'dart:async';
 
 Future<List<Map<String, dynamic>>> getallcabang() async {
-  final url = 'http://192.168.1.197:3002/cabang/showAllcabang';
+  final url = 'https://e6db-103-50-129-83.ngrok-free.app/cabang/showAllcabang';
   final response = await http.get(Uri.parse(url));
   if (response.body.isEmpty) {
     return [];
@@ -19,7 +19,7 @@ Future<List<Map<String, dynamic>>> getallcabang() async {
 
 //delete cabang
 void deletecabang(String id, BuildContext context) async {
-  final url = 'http://192.168.1.197:3002/cabang/delete/$id';
+  final url = 'https://e6db-103-50-129-83.ngrok-free.app/cabang/delete/$id';
   final response = await http.delete(Uri.parse(url));
   if (response.statusCode == 200) {
     // Data deleted successfully
@@ -33,7 +33,8 @@ void deletecabang(String id, BuildContext context) async {
 }
 
 Future<String> getdatacabang(String email) async {
-  final url = 'http://192.168.1.197:3002/user/cariUserbyEmail/$email';
+  final url =
+      'https://e6db-103-50-129-83.ngrok-free.app/user/cariUserbyEmail/$email';
   final response = await http.get(Uri.parse(url));
   // Check the response status code
   if (response.statusCode == 304 || response.statusCode == 200) {
@@ -55,7 +56,8 @@ Future<String> getdatacabang(String email) async {
 }
 
 Future<List<Map<String, dynamic>>> getdatacabangByID(String id) async {
-  final url = 'http://192.168.1.197:3002/cabang/caricabangbyID/$id';
+  final url =
+      'https://e6db-103-50-129-83.ngrok-free.app/cabang/caricabangbyID/$id';
   final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 304 || response.statusCode == 200) {

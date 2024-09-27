@@ -17,7 +17,7 @@ void addbarang(DateTime insertedDate, bool noExp, String nama_barang,
     getdatagudang();
     String id_gudangs = dataStorage.read('id_gudang');
     final requestjenis = Uri.parse(
-        'http://192.168.1.197:3002/barang/getjenisfromkategori/$katakategori');
+        'https://e6db-103-50-129-83.ngrok-free.app/barang/getjenisfromkategori/$katakategori');
     final datajenis = await http.get(requestjenis);
     final jenis = json.decode(datajenis.body);
     if (!noExp) {
@@ -36,7 +36,7 @@ void addbarang(DateTime insertedDate, bool noExp, String nama_barang,
       'exp_date': expDateString,
     };
     final url =
-        'http://192.168.1.197:3002/barang/addbarang/$id_gudangs/$id_cabang';
+        'https://e6db-103-50-129-83.ngrok-free.app/barang/addbarang/$id_gudangs/$id_cabang';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -59,7 +59,7 @@ Future<List<Map<String, dynamic>>> getBarang(String idgudang) async {
   final dataStorage = GetStorage();
   String id_cabang = dataStorage.read('id_cabang');
   final request = Uri.parse(
-      'http://192.168.1.197:3002/barang/baranglist/$idgudang/$id_cabang');
+      'https://e6db-103-50-129-83.ngrok-free.app/barang/baranglist/$idgudang/$id_cabang');
   final response = await http.get(request);
   if (response.statusCode == 200 || response.statusCode == 304) {
     final Map<String, dynamic> jsonData = json.decode(response.body);
@@ -78,7 +78,7 @@ void deletebarang(String id) async {
   final id_cabang = dataStorage.read("id_cabang");
   final id_gudang = dataStorage.read("id_gudang");
   final url =
-      'http://192.168.1.197:3002/barang/deletebarang/$id_gudang/$id_cabang/$id';
+      'https://e6db-103-50-129-83.ngrok-free.app/barang/deletebarang/$id_gudang/$id_cabang/$id';
   final response = await http.delete(Uri.parse(url));
   if (response.statusCode == 200) {
     print('Data deleted successfully');
@@ -100,7 +100,7 @@ void UpdateBarang(String id, String nama_barang, String katakategori,
   final id_cabang = dataStorage.read("id_cabang");
   final id_gudang = dataStorage.read("id_gudang");
   final url =
-      'http://192.168.1.197:3002/barang/updatebarang/$id_gudang/$id_cabang/$id';
+      'https://e6db-103-50-129-83.ngrok-free.app/barang/updatebarang/$id_gudang/$id_cabang/$id';
   try {
     final response = await http.put(
       Uri.parse(url),
@@ -132,7 +132,8 @@ void addkategori(String nama_kategori, String selectedvalueJenis,
       'nama_kategori': nama_kategori,
       'id_jenis': selectedvalueJenis,
     };
-    final url = 'http://192.168.1.197:3002/barang/tambahkategori';
+    final url =
+        'https://e6db-103-50-129-83.ngrok-free.app/barang/tambahkategori';
     final response = await http.post(
       Uri.parse(url),
       headers: {
@@ -157,7 +158,7 @@ void addkategori(String nama_kategori, String selectedvalueJenis,
 
 //get kategori
 Future<List<Map<String, dynamic>>> getKategori() async {
-  final url = 'http://192.168.1.197:3002/barang/getkategori';
+  final url = 'https://e6db-103-50-129-83.ngrok-free.app/barang/getkategori';
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200 || response.statusCode == 304) {
     print('berhasil akses data');
@@ -170,7 +171,8 @@ Future<List<Map<String, dynamic>>> getKategori() async {
 }
 
 Future<String> getFirstKategoriId() async {
-  final url = 'http://192.168.1.197:3002/barang/getfirstkategori';
+  final url =
+      'https://e6db-103-50-129-83.ngrok-free.app/barang/getfirstkategori';
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200 || response.statusCode == 304) {
     print('berhasil akses data kategori pertama');
@@ -229,7 +231,7 @@ void addjenis(String nama_jenis, BuildContext context) async {
   final Jenisdata = {
     'nama_jenis': nama_jenis,
   };
-  final url = 'http://192.168.1.197:3002/barang/tambahjenis';
+  final url = 'https://e6db-103-50-129-83.ngrok-free.app/barang/tambahjenis';
   final response = await http.post(
     Uri.parse(url),
     headers: {
@@ -245,7 +247,7 @@ void addjenis(String nama_jenis, BuildContext context) async {
 }
 
 Future<List<Map<String, dynamic>>> getJenis() async {
-  final url = 'http://192.168.1.197:3002/barang/getjenis';
+  final url = 'https://e6db-103-50-129-83.ngrok-free.app/barang/getjenis';
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200 || response.statusCode == 304) {
     print('berhasil akses data jenis');
@@ -258,7 +260,7 @@ Future<List<Map<String, dynamic>>> getJenis() async {
 }
 
 Future<String> getFirstJenisId() async {
-  final url = 'http://192.168.1.197:3002/barang/getfirstjenis';
+  final url = 'https://e6db-103-50-129-83.ngrok-free.app/barang/getfirstjenis';
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200 || response.statusCode == 304) {
     print('berhasil akses data jenis pertama');
@@ -332,11 +334,41 @@ void addsatuan(String id_barang, String nama_satuan, String jumlah_satuan,
     final id_cabang = dataStorage.read("id_cabang");
     String id_gudangs = dataStorage.read('id_gudang');
     final url =
-        'http://192.168.1.197:2/barang/addsatuan/$id_barang/$id_cabang/$id_gudangs';
+        'https://e6db-103-50-129-83.ngrok-free.app/barang/addsatuan/$id_barang/$id_cabang/$id_gudangs';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(satuandata),
+    );
+
+    if (response.statusCode == 200) {
+      showToast(context, 'Berhasil menambah data');
+    } else {
+      showToast(context, "Gagal menambahkan data");
+      print('HTTP Error: ${response.statusCode}');
+    }
+  } catch (error) {
+    showToast(context, "Error: $error");
+    print('Exception during HTTP request: $error');
+  }
+}
+
+void updatejumlahSatuan(String id_barang, String id_satuan, int jumlah_satuan,
+    String action, BuildContext context) async {
+  try {
+    final satuanUpdatedata = {
+      'jumlah_satuan': jumlah_satuan,
+      'action': action,
+    };
+    final dataStorage = GetStorage();
+    final id_cabang = dataStorage.read("id_cabang");
+    String id_gudangs = dataStorage.read('id_gudang');
+    final url =
+        'https://e6db-103-50-129-83.ngrok-free.app/barang/editjumlahsatuan/$id_barang/$id_cabang/$id_gudangs/$id_satuan';
+    final response = await http.put(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(satuanUpdatedata),
     );
 
     if (response.statusCode == 200) {
@@ -358,7 +390,7 @@ Future<List<Map<String, dynamic>>> getsatuan(
     final id_cabang = dataStorage.read("id_cabang");
     String id_gudangs = dataStorage.read('id_gudang');
     final url =
-        'http://192.168.1.197:3002/barang/getsatuan/$id_barang/$id_cabang/$id_gudangs';
+        'https://e6db-103-50-129-83.ngrok-free.app/barang/getsatuan/$id_barang/$id_cabang/$id_gudangs';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200 || response.statusCode == 304) {
       print('berhasil akses data jenis');

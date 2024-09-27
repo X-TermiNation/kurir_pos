@@ -10,7 +10,7 @@ String idcabangglobal = "";
 
 //verify
 Future<void> verify() async {
-  String uriString = "http://192.168.1.197:3002/user/verify";
+  String uriString = "https://e6db-103-50-129-83.ngrok-free.app/user/verify";
   Uri uri = Uri.parse(uriString);
   final response = await http.get(uri);
 }
@@ -19,7 +19,8 @@ Future<void> verify() async {
 Future<List<Map<String, dynamic>>> getUsers() async {
   final dataStorage = GetStorage();
   String id_cabangs = dataStorage.read('id_cabang');
-  final request = Uri.parse('http://192.168.1.197:3002/user/list/$id_cabangs');
+  final request = Uri.parse(
+      'https://e6db-103-50-129-83.ngrok-free.app/user/list/$id_cabangs');
   final response = await http.get(request);
   if (response.body.isEmpty) {
     return [];
@@ -42,7 +43,7 @@ Future<void> fetchData() async {
 //login
 Future<int> loginbtn(String email, String pass) async {
   try {
-    String uriString = "http://192.168.1.197:3002/user/login";
+    String uriString = "https://e6db-103-50-129-83.ngrok-free.app/user/login";
     Uri uri = Uri.parse(uriString);
     final response = await http.post(
       uri,
@@ -83,7 +84,7 @@ void tambahOwner(String email, String pass, String fname, String lname) async {
     };
 
     if (email != "" && pass != "" && fname != "" && lname != "") {
-      final url = 'http://192.168.1.197:3002/user/addOwner';
+      final url = 'https://e6db-103-50-129-83.ngrok-free.app/user/addOwner';
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -119,7 +120,8 @@ void tambahpegawai(
     final dataStorage = GetStorage();
     String id_cabang = dataStorage.read('id_cabang');
     if (email != "" && pass != "" && fname != "" && lname != "") {
-      final url = 'http://192.168.1.197:3002/user/addUser/$id_cabang';
+      final url =
+          'https://e6db-103-50-129-83.ngrok-free.app/user/addUser/$id_cabang';
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -144,7 +146,8 @@ void tambahpegawai(
 void deleteuser(String id, BuildContext context) async {
   final dataStorage = GetStorage();
   String id_cabang = dataStorage.read('id_cabang');
-  final url = 'http://192.168.1.197:3002/user/deleteuser/$id/$id_cabang';
+  final url =
+      'https://e6db-103-50-129-83.ngrok-free.app/user/deleteuser/$id/$id_cabang';
   final response = await http.delete(Uri.parse(url));
   if (response.statusCode == 200) {
     // Data deleted successfully
@@ -167,7 +170,8 @@ void UpdateUser(String fname, String lname, String role, String id,
   };
   final dataStorage = GetStorage();
   String id_cabang = dataStorage.read('id_cabang');
-  final url = 'http://192.168.1.197:3002/user/updateuser/$id/$id_cabang';
+  final url =
+      'https://e6db-103-50-129-83.ngrok-free.app/user/updateuser/$id/$id_cabang';
   try {
     final response = await http.put(
       Uri.parse(url),

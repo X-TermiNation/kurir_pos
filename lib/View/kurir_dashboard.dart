@@ -33,7 +33,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _deliveries = [];
-  final TextEditingController _addressController = TextEditingController();
+  Map<String, Map<String, dynamic>?> _transactions = {};
+  // final TextEditingController _addressController = TextEditingController();
 
   @override
   void initState() {
@@ -46,6 +47,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (deliveries != null) {
       setState(() {
         _deliveries = deliveries;
+      });
+    }
+  }
+
+  Future<void> fetchTransaction(String idTransaction) async {
+    Map<String, dynamic>? transactionData =
+        await getTransById(idTransaction); // Fetch transaction data
+    if (transactionData != null) {
+      setState(() {
+        _transactions[idTransaction] =
+            transactionData; // Store transaction data
       });
     }
   }
@@ -86,39 +98,40 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _addressController,
-              decoration: InputDecoration(
-                labelText: 'Enter Address',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () async {
-                    String address = _addressController.text;
-                    Position? currentLocation = await fetchCurrentLocation();
-                    if (currentLocation != null) {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MapScreen(
-                            currentLocation: currentLocation,
-                            destinationAddress: address,
-                            telp_number: "#",
-                            id_transaksi: "#",
-                          ),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Could not access location.'),
-                      ));
-                    }
-                  },
-                ),
-              ),
-            ),
-          ),
+          //search bar for location testing
+          // Padding(
+          //   padding: const EdgeInsets.all(8.0),
+          //   child: TextField(
+          //     controller: _addressController,
+          //     decoration: InputDecoration(
+          //       labelText: 'Enter Address',
+          //       suffixIcon: IconButton(
+          //         icon: Icon(Icons.search),
+          //         onPressed: () async {
+          //           String address = _addressController.text;
+          //           Position? currentLocation = await fetchCurrentLocation();
+          //           if (currentLocation != null) {
+          //             await Navigator.push(
+          //               context,
+          //               MaterialPageRoute(
+          //                 builder: (context) => MapScreen(
+          //                   currentLocation: currentLocation,
+          //                   destinationAddress: address,
+          //                   telp_number: "#",
+          //                   id_transaksi: "#",
+          //                 ),
+          //               ),
+          //             );
+          //           } else {
+          //             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          //               content: Text('Could not access location.'),
+          //             ));
+          //           }
+          //         },
+          //       ),
+          //     ),
+          //   ),
+          // ),
           Expanded(
             child: _deliveries.isEmpty
                 ? Center(child: CircularProgressIndicator())
@@ -126,10 +139,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: _deliveries.length,
                     itemBuilder: (context, index) {
                       var delivery = _deliveries[index];
+                      String transactionId = delivery["transaksi_id"];
+
+                      // Fetch transaction if not already fetched
+                      if (!_transactions.containsKey(transactionId)) {
+                        fetchTransaction(transactionId);
+                      }
+                      // Get payment method if transaction data is available
+
+                      String paymentMethod = _transactions[transactionId]
+                              ?["payment_method"] ??
+                          "N/A";
+
                       return ListTile(
                         title: Text('Delivery #${delivery["_id"]}'),
-                        subtitle: Text(
-                            'Status: ${delivery["status"]}\nAlamat Customer: ${delivery["alamat_tujuan"]} \nNo.Telepon Customer: ${delivery["no_telp_cust"]} \nID Transaksi: ${delivery["transaksi_id"]}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Status: ${delivery["status"]}'),
+                            Text(
+                                'Alamat Customer: ${delivery["alamat_tujuan"]}'),
+                            Text(
+                                'No.Telepon Customer: ${delivery["no_telp_cust"]}'),
+                            Text('ID Transaksi: ${delivery["transaksi_id"]}'),
+                            Text(
+                                'Payment Method: $paymentMethod'), // Display payment method
+                          ],
+                        ),
                         trailing: Icon(Icons.chevron_right),
                         onTap: () async {
                           Position? currentLocation =
