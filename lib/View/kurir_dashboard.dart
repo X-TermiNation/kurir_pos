@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -7,11 +8,13 @@ import 'package:kurir_pos/View/tools/websocket_service.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:kurir_pos/view-model-flutter/transaksi_controller.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:camera/camera.dart';
+import 'package:qr/qr.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:ui' as ui;
 
 class CourierDashboard extends StatelessWidget {
   @override
@@ -151,6 +154,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               ?["payment_method"] ??
                           "N/A";
 
+                      String grandtotal = "N/A";
+
+                      if (_transactions[transactionId]?["grand_total"] !=
+                          null) {
+                        double grandTotal = double.parse(
+                            _transactions[transactionId]?["grand_total"]
+                                    .toString() ??
+                                "0");
+                        grandtotal = grandTotal.toString();
+                      }
+
                       return ListTile(
                         title: Text('Delivery #${delivery["_id"]}'),
                         subtitle: Column(
@@ -162,8 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                                 'No.Telepon Customer: ${delivery["no_telp_cust"]}'),
                             Text('ID Transaksi: ${delivery["transaksi_id"]}'),
-                            Text(
-                                'Payment Method: $paymentMethod'), // Display payment method
+                            Text('Payment Method: $paymentMethod'),
                           ],
                         ),
                         trailing: Icon(Icons.chevron_right),
@@ -175,12 +188,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => MapScreen(
-                                  currentLocation: currentLocation,
-                                  destinationAddress:
-                                      "${delivery["alamat_tujuan"]}",
-                                  telp_number: "${delivery["no_telp_cust"]}",
-                                  id_transaksi: "${delivery["_id"]}",
-                                ),
+                                    currentLocation: currentLocation,
+                                    destinationAddress:
+                                        "${delivery["alamat_tujuan"]}",
+                                    telp_number: "${delivery["no_telp_cust"]}",
+                                    id_transaksi: "${delivery["_id"]}",
+                                    payment_method: "$paymentMethod",
+                                    grand_total: "$grandtotal"),
                               ),
                             );
                           } else {
@@ -204,12 +218,16 @@ class MapScreen extends StatefulWidget {
   final String destinationAddress;
   final String telp_number;
   final String id_transaksi;
+  final String payment_method;
+  final String grand_total;
 
   MapScreen(
       {required this.currentLocation,
       required this.destinationAddress,
       required this.telp_number,
-      required this.id_transaksi});
+      required this.id_transaksi,
+      required this.payment_method,
+      required this.grand_total});
 
   @override
   _MapScreenState createState() => _MapScreenState();
@@ -341,8 +359,8 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: SlidingUpPanel(
         panel: _buildSlidingPanel(context),
-        minHeight: 100,
-        maxHeight: MediaQuery.of(context).size.height * 0.4,
+        minHeight: 90,
+        maxHeight: MediaQuery.of(context).size.height * 0.5,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         body: FlutterMap(
           options: MapOptions(
@@ -442,7 +460,11 @@ class _MapScreenState extends State<MapScreen> {
           Text('ID Transaksi: ${widget.id_transaksi}'),
           SizedBox(height: 8),
           Text('No. Telepon: ${widget.telp_number}'),
-          SizedBox(height: 32),
+          SizedBox(
+            height: 8,
+          ),
+          Text('Payment Method: ${widget.payment_method}'),
+          SizedBox(height: 15),
           Center(
               child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -477,14 +499,18 @@ class _MapScreenState extends State<MapScreen> {
   void _showFinishDeliveryDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevent closing when tapping outside
       builder: (BuildContext context) {
         return FinishDeliveryDialog(
-          image: _image, // Pass the current image
+          image: _image,
           onImageTaken: (newImage) {
             setState(() {
-              _image = newImage; // Update the image taken in parent state
+              _image =
+                  newImage; // Update the image when photo is taken or deleted
             });
           },
+          payment_method: widget.payment_method,
+          grand_total: widget.grand_total,
         );
       },
     );
@@ -494,8 +520,13 @@ class _MapScreenState extends State<MapScreen> {
 class FinishDeliveryDialog extends StatefulWidget {
   final XFile? image;
   final Function(XFile?) onImageTaken;
-
-  FinishDeliveryDialog({required this.image, required this.onImageTaken});
+  final String payment_method;
+  final String grand_total;
+  FinishDeliveryDialog(
+      {required this.image,
+      required this.onImageTaken,
+      required this.payment_method,
+      required this.grand_total});
 
   @override
   _FinishDeliveryDialogState createState() => _FinishDeliveryDialogState();
@@ -503,41 +534,171 @@ class FinishDeliveryDialog extends StatefulWidget {
 
 class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
   late XFile? _image;
+  String? qrCodeUrl;
+  bool _isLoading = true;
+  String grandTotal = "N/A";
 
   @override
   void initState() {
     super.initState();
+    double grandtotaltemp = double.parse(widget.grand_total);
+    final NumberFormat currencyFormat =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp.', decimalDigits: 2);
+    grandTotal = currencyFormat.format(grandtotaltemp);
+    if (widget.payment_method == 'QRIS') {
+      _fetchQRCodeUrl();
+    }
     _image = widget.image; // Initialize the image from widget
+  }
+
+  Future<Uint8List> generateQrImage(String data) async {
+    final qr = QrCode(4, QrErrorCorrectLevel.L);
+    qr.addData(data);
+    qr.make();
+
+    final qrCodeSize = 200.0;
+    final size = qrCodeSize.toInt();
+
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(
+        pictureRecorder,
+        Rect.fromPoints(
+            Offset(0, 0), Offset(size.toDouble(), size.toDouble())));
+
+    final paint = Paint()..color = Colors.black;
+
+    for (var x = 0; x < qr.moduleCount; x++) {
+      for (var y = 0; y < qr.moduleCount; y++) {
+        if (qr.isDark(y, x)) {
+          canvas.drawRect(
+            Rect.fromLTWH(
+                x * qrCodeSize / qr.moduleCount,
+                y * qrCodeSize / qr.moduleCount,
+                qrCodeSize / qr.moduleCount,
+                qrCodeSize / qr.moduleCount),
+            paint,
+          );
+        }
+      }
+    }
+    final img = await pictureRecorder.endRecording().toImage(size, size);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  Future<void> _fetchQRCodeUrl() async {
+    try {
+      final double grandTotalDouble = double.parse(widget.grand_total);
+      final url = await createqris(grandTotalDouble.toInt(), context);
+      setState(() {
+        qrCodeUrl = url;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Finish Delivery'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_image != null) ...[
-            Image.file(
-              File(_image!.path),
-              height: 150,
-              width: 150,
-              fit: BoxFit.cover,
+      content: SingleChildScrollView(
+        // Make it scrollable
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    "Pembayaran",
+                    style: TextStyle(fontSize: 20),
+                  ),
+                  SizedBox(height: 8),
+                  if (widget.payment_method == "QRIS") ...[
+                    Center(
+                      child: _isLoading
+                          ? CircularProgressIndicator()
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Scan Here",
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                FutureBuilder<Uint8List>(
+                                  future: generateQrImage(qrCodeUrl!),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return CircularProgressIndicator();
+                                    } else if (snapshot.hasError) {
+                                      return Text('Error generating QR code');
+                                    } else {
+                                      return SizedBox(
+                                        width: 200,
+                                        height: 200,
+                                        child: Image.memory(snapshot.data!),
+                                      );
+                                    }
+                                  },
+                                ),
+                                Text(
+                                  "a/n xxx xxx xxx",
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ] else ...[
+                    SizedBox(height: 20),
+                    Center(
+                      child: Text('Pembayaran Dilakukan Secara Tunai.'),
+                    ),
+                  ],
+                  SizedBox(height: 5),
+                  Text(
+                    "Grand Total: ${grandTotal}",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
             SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _image = null; // Reset image to null
-                });
-                widget.onImageTaken(null); // Notify parent to delete the photo
-              },
-              child: Text('Delete Photo'),
+            Center(
+              child: Text("Bukti Pengiriman"),
             ),
-          ] else ...[
-            Text('No photo taken.'),
+            SizedBox(height: 8),
+            if (_image != null) ...[
+              Image.file(
+                File(_image!.path),
+                height: 150,
+                width: 150,
+                fit: BoxFit.cover,
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _image = null;
+                  });
+                  widget.onImageTaken(null);
+                },
+                child: Text('Delete Photo'),
+              ),
+            ] else ...[
+              Text('No photo taken.'),
+            ],
           ],
-        ],
+        ),
       ),
       actions: [
         ElevatedButton(
@@ -547,19 +708,18 @@ class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
             );
             if (pickedFile != null) {
               setState(() {
-                _image = pickedFile; // Update local state
+                _image = pickedFile;
               });
-              widget.onImageTaken(
-                  pickedFile); // Notify parent about the new photo
+              widget.onImageTaken(pickedFile);
             }
           },
           child: Text('Take Photo'),
         ),
         ElevatedButton(
           onPressed: () {
-            Navigator.of(context).pop(); // Close the dialog
+            Navigator.of(context).pop();
           },
-          child: Text('Finish'),
+          child: Text(_image == null ? 'Cancel' : 'Finish'),
         ),
       ],
     );

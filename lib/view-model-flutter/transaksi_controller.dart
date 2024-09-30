@@ -13,7 +13,7 @@ Future<String?> createqris(int amount, BuildContext context) async {
       'amount': amount,
       'callback_url': "https://yourcallbackurl.com",
     };
-    final url = 'https://e6db-103-50-129-83.ngrok-free.app/xendit/create-qris';
+    final url = 'https://39b9-103-50-129-83.ngrok-free.app/xendit/create-qris';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -43,7 +43,7 @@ void createInvoice(String external_id, int amount, String payer_email,
       'payer_email': payer_email,
       'description': description,
     };
-    final url = 'https://e6db-103-50-129-83.ngrok-free.app/xendit/create-qris';
+    final url = 'https://39b9-103-50-129-83.ngrok-free.app/xendit/create-qris';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -98,7 +98,7 @@ Future<Map<String, dynamic>?> addTrans(
 
     // Send the transaction data to the server
     final url =
-        'https://e6db-103-50-129-83.ngrok-free.app/transaksi/addtrans/$id_cabang';
+        'https://39b9-103-50-129-83.ngrok-free.app/transaksi/addtrans/$id_cabang';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -127,7 +127,7 @@ Future<List<Map<String, dynamic>>> getTrans() async {
   final dataStorage = GetStorage();
   String id_cabang = dataStorage.read('id_cabang');
   final request = Uri.parse(
-      'https://e6db-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang');
+      'https://39b9-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang');
   final response = await http.get(request);
   if (response.statusCode == 200 || response.statusCode == 304) {
     final Map<String, dynamic> jsonData = json.decode(response.body);
@@ -146,7 +146,7 @@ Future<Map<String, dynamic>?> getTransById(String trans_id) async {
   String id_cabang = dataStorage.read('id_cabang');
 
   final request = Uri.parse(
-      'https://e6db-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang/$trans_id');
+      'https://39b9-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang/$trans_id');
   final response = await http.get(request);
 
   if (response.statusCode == 200 || response.statusCode == 304) {
@@ -183,7 +183,7 @@ Future<Map<String, dynamic>?> addDelivery(
       'transaksi_id': transaksi_id,
     };
     final url =
-        'https://e6db-103-50-129-83.ngrok-free.app/transaksi/addDelivery/$id_cabang';
+        'https://39b9-103-50-129-83.ngrok-free.app/transaksi/addDelivery/$id_cabang';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -213,7 +213,7 @@ Future<List<dynamic>?> showDelivery(
 
   try {
     final url =
-        'https://e6db-103-50-129-83.ngrok-free.app/transaksi/showDelivery/$id_cabang';
+        'https://39b9-103-50-129-83.ngrok-free.app/transaksi/showDelivery/$id_cabang';
     final response = await http.get(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -251,7 +251,7 @@ Future<Map<String, dynamic>> generateInvoice(
     String dateinvoice = formatter.format(date_trans);
     final response = await http.post(
       Uri.parse(
-          'https://e6db-103-50-129-83.ngrok-free.app/invoice/generate-invoice'),
+          'https://39b9-103-50-129-83.ngrok-free.app/invoice/generate-invoice'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -290,7 +290,7 @@ Future<Map<String, dynamic>> generateInvoice(
 Future<bool> sendInvoiceByEmail(
     String invoicePath, String receiverEmail, BuildContext context) async {
   final Uri uri = Uri.parse(
-      'https://e6db-103-50-129-83.ngrok-free.app/invoice/invoice-email');
+      'https://39b9-103-50-129-83.ngrok-free.app/invoice/invoice-email');
   try {
     final response = await http.post(
       uri,
