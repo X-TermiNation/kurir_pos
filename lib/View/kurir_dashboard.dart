@@ -191,8 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     currentLocation: currentLocation,
                                     destinationAddress:
                                         "${delivery["alamat_tujuan"]}",
+                                    id_delivery: "${delivery["_id"]}",
                                     telp_number: "${delivery["no_telp_cust"]}",
-                                    id_transaksi: "${delivery["_id"]}",
+                                    id_transaksi: "${delivery["transaksi_id"]}",
                                     payment_method: "$paymentMethod",
                                     grand_total: "$grandtotal"),
                               ),
@@ -216,6 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
 class MapScreen extends StatefulWidget {
   final Position currentLocation;
   final String destinationAddress;
+  final String id_delivery;
   final String telp_number;
   final String id_transaksi;
   final String payment_method;
@@ -224,6 +226,7 @@ class MapScreen extends StatefulWidget {
   MapScreen(
       {required this.currentLocation,
       required this.destinationAddress,
+      required this.id_delivery,
       required this.telp_number,
       required this.id_transaksi,
       required this.payment_method,
@@ -455,6 +458,7 @@ class _MapScreenState extends State<MapScreen> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 16),
+          Text('Delivery ID : ${widget.id_delivery}'),
           Text('Alamat Customer: ${widget.destinationAddress}'),
           SizedBox(height: 8),
           Text('ID Transaksi: ${widget.id_transaksi}'),
@@ -509,6 +513,8 @@ class _MapScreenState extends State<MapScreen> {
                   newImage; // Update the image when photo is taken or deleted
             });
           },
+          id_delivery: widget.id_delivery,
+          id_transaksi: widget.id_transaksi,
           payment_method: widget.payment_method,
           grand_total: widget.grand_total,
         );
@@ -520,11 +526,16 @@ class _MapScreenState extends State<MapScreen> {
 class FinishDeliveryDialog extends StatefulWidget {
   final XFile? image;
   final Function(XFile?) onImageTaken;
+  final String id_delivery;
+  final String id_transaksi;
   final String payment_method;
   final String grand_total;
+
   FinishDeliveryDialog(
       {required this.image,
       required this.onImageTaken,
+      required this.id_delivery,
+      required this.id_transaksi,
       required this.payment_method,
       required this.grand_total});
 
@@ -537,7 +548,7 @@ class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
   String? qrCodeUrl;
   bool _isLoading = true;
   String grandTotal = "N/A";
-
+  bool CanFinish = false;
   @override
   void initState() {
     super.initState();
@@ -689,6 +700,7 @@ class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
                 onPressed: () {
                   setState(() {
                     _image = null;
+                    CanFinish = false;
                   });
                   widget.onImageTaken(null);
                 },
@@ -709,6 +721,7 @@ class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
             if (pickedFile != null) {
               setState(() {
                 _image = pickedFile;
+                CanFinish = true;
               });
               widget.onImageTaken(pickedFile);
             }
@@ -717,9 +730,12 @@ class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
         ),
         ElevatedButton(
           onPressed: () {
-            Navigator.of(context).pop();
+            if (CanFinish) {
+            } else {
+              Navigator.of(context).pop();
+            }
           },
-          child: Text(_image == null ? 'Cancel' : 'Finish'),
+          child: Text(CanFinish ? 'Finish' : 'Cancel'),
         ),
       ],
     );
