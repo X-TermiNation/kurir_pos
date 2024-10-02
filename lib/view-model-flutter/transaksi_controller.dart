@@ -13,7 +13,7 @@ Future<String?> createqris(int amount, BuildContext context) async {
       'amount': amount,
       'callback_url': "https://yourcallbackurl.com",
     };
-    final url = 'https://3cfb-103-50-129-83.ngrok-free.app/xendit/create-qris';
+    final url = 'https://46f4-103-50-129-83.ngrok-free.app/xendit/create-qris';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -43,7 +43,7 @@ void createInvoice(String external_id, int amount, String payer_email,
       'payer_email': payer_email,
       'description': description,
     };
-    final url = 'https://3cfb-103-50-129-83.ngrok-free.app/xendit/create-qris';
+    final url = 'https://46f4-103-50-129-83.ngrok-free.app/xendit/create-qris';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -98,7 +98,7 @@ Future<Map<String, dynamic>?> addTrans(
 
     // Send the transaction data to the server
     final url =
-        'https://3cfb-103-50-129-83.ngrok-free.app/transaksi/addtrans/$id_cabang';
+        'https://46f4-103-50-129-83.ngrok-free.app/transaksi/addtrans/$id_cabang';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -122,12 +122,47 @@ Future<Map<String, dynamic>?> addTrans(
   return null; // Return null in case of an error
 }
 
+//update transaction status after delivery
+Future<Map<String, dynamic>?> updateTransStatus(
+  BuildContext context,
+  String id_transaksi,
+) async {
+  final dataStorage = GetStorage();
+  String id_cabang = dataStorage.read('id_cabang');
+  final request = Uri.parse(
+      'https://46f4-103-50-129-83.ngrok-free.app/transaksi/updateTransStatus/$id_cabang/$id_transaksi');
+
+  try {
+    final response = await http.put(
+      request,
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonData = json.decode(response.body);
+      showToast(context, "Transaction status updated successfully");
+      return jsonData; // Return the updated transaction data
+    } else if (response.statusCode == 404) {
+      showToast(context, "Transaction not found");
+    } else {
+      showToast(context,
+          "Failed to update transaction status: ${response.statusCode}");
+      print('HTTP Error: ${response.statusCode}');
+    }
+  } catch (error) {
+    showToast(context, "Error: $error");
+    print('Exception during HTTP request: $error');
+  }
+
+  return null; // Return null in case of an error
+}
+
 //show alltrans in cabang
 Future<List<Map<String, dynamic>>> getTrans() async {
   final dataStorage = GetStorage();
   String id_cabang = dataStorage.read('id_cabang');
   final request = Uri.parse(
-      'https://3cfb-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang');
+      'https://46f4-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang');
   final response = await http.get(request);
   if (response.statusCode == 200 || response.statusCode == 304) {
     final Map<String, dynamic> jsonData = json.decode(response.body);
@@ -146,7 +181,7 @@ Future<Map<String, dynamic>?> getTransById(String trans_id) async {
   String id_cabang = dataStorage.read('id_cabang');
 
   final request = Uri.parse(
-      'https://3cfb-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang/$trans_id');
+      'https://46f4-103-50-129-83.ngrok-free.app/transaksi/translist/$id_cabang/$trans_id');
   final response = await http.get(request);
 
   if (response.statusCode == 200 || response.statusCode == 304) {
@@ -183,7 +218,7 @@ Future<Map<String, dynamic>?> addDelivery(
       'transaksi_id': transaksi_id,
     };
     final url =
-        'https://3cfb-103-50-129-83.ngrok-free.app/transaksi/addDelivery/$id_cabang';
+        'https://46f4-103-50-129-83.ngrok-free.app/transaksi/addDelivery/$id_cabang';
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -204,6 +239,39 @@ Future<Map<String, dynamic>?> addDelivery(
   return null; // Return null in case of an error
 }
 
+//update delivery status with no pic
+Future<List<dynamic>?> updateDeliveryStatus(
+  BuildContext context,
+  String
+      id_transaksi, // Add this parameter to specify which transaction to update
+) async {
+  final dataStorage = GetStorage();
+  String id_cabang = dataStorage.read('id_cabang');
+  try {
+    final url =
+        'https://46f4-103-50-129-83.ngrok-free.app/transaksi/updateDeliveryStatus/$id_cabang/$id_transaksi';
+    final response = await http.put(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      showToast(context, 'Berhasil memperbarui status pengiriman');
+      final responseData = jsonDecode(response.body);
+      return responseData['data'];
+    } else if (response.statusCode == 404) {
+      showToast(context, "Pengiriman tidak ditemukan");
+    } else {
+      showToast(context, "Gagal memperbarui status pengiriman");
+      print('HTTP Error: ${response.statusCode}');
+    }
+  } catch (error) {
+    showToast(context, "Error: $error");
+    print('Exception during HTTP request: $error');
+  }
+  return null; // Return null in case of an error
+}
+
 //delivery with status "In Progress"
 Future<List<dynamic>?> showDelivery(
   BuildContext context,
@@ -213,7 +281,7 @@ Future<List<dynamic>?> showDelivery(
 
   try {
     final url =
-        'https://3cfb-103-50-129-83.ngrok-free.app/transaksi/showDelivery/$id_cabang';
+        'https://46f4-103-50-129-83.ngrok-free.app/transaksi/showDelivery/$id_cabang';
     final response = await http.get(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
@@ -251,7 +319,7 @@ Future<Map<String, dynamic>> generateInvoice(
     String dateinvoice = formatter.format(date_trans);
     final response = await http.post(
       Uri.parse(
-          'https://3cfb-103-50-129-83.ngrok-free.app/invoice/generate-invoice'),
+          'https://46f4-103-50-129-83.ngrok-free.app/invoice/generate-invoice'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -290,7 +358,7 @@ Future<Map<String, dynamic>> generateInvoice(
 Future<bool> sendInvoiceByEmail(
     String invoicePath, String receiverEmail, BuildContext context) async {
   final Uri uri = Uri.parse(
-      'https://3cfb-103-50-129-83.ngrok-free.app/invoice/invoice-email');
+      'https://46f4-103-50-129-83.ngrok-free.app/invoice/invoice-email');
   try {
     final response = await http.post(
       uri,

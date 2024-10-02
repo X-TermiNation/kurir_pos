@@ -137,7 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
           // ),
           Expanded(
             child: _deliveries.isEmpty
-                ? Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: Text("Tidak Ada Pesanan Antar"),
+                  )
                 : ListView.builder(
                     itemCount: _deliveries.length,
                     itemBuilder: (context, index) {
@@ -184,20 +186,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           Position? currentLocation =
                               await fetchCurrentLocation();
                           if (currentLocation != null) {
-                            Navigator.push(
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => MapScreen(
-                                    currentLocation: currentLocation,
-                                    destinationAddress:
-                                        "${delivery["alamat_tujuan"]}",
-                                    id_delivery: "${delivery["_id"]}",
-                                    telp_number: "${delivery["no_telp_cust"]}",
-                                    id_transaksi: "${delivery["transaksi_id"]}",
-                                    payment_method: "$paymentMethod",
-                                    grand_total: "$grandtotal"),
+                                  currentLocation: currentLocation,
+                                  destinationAddress:
+                                      "${delivery["alamat_tujuan"]}",
+                                  id_delivery: "${delivery["_id"]}",
+                                  telp_number: "${delivery["no_telp_cust"]}",
+                                  id_transaksi: "${delivery["transaksi_id"]}",
+                                  payment_method: "$paymentMethod",
+                                  grand_total: "$grandtotal",
+                                ),
                               ),
                             );
+                            if (result == true) {
+                              fetchDeliveries();
+                            }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                               content: Text('Could not access location.'),
@@ -426,75 +432,85 @@ class _MapScreenState extends State<MapScreen> {
 
   // Sliding panel for delivery information
   Widget _buildSlidingPanel(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            spreadRadius: 1,
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              margin: EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(10),
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              spreadRadius: 1,
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                margin: EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
-          ),
-          Text(
-            'Delivery Information',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 16),
-          Text('Delivery ID : ${widget.id_delivery}'),
-          Text('Alamat Customer: ${widget.destinationAddress}'),
-          SizedBox(height: 8),
-          Text('ID Transaksi: ${widget.id_transaksi}'),
-          SizedBox(height: 8),
-          Text('No. Telepon: ${widget.telp_number}'),
-          SizedBox(
-            height: 8,
-          ),
-          Text('Payment Method: ${widget.payment_method}'),
-          SizedBox(height: 15),
-          Center(
-              child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  if (isDelivering) {
-                    _startDelivery();
-                  } else {
-                    setState(() {
-                      isDelivering = true;
-                    });
-                  }
-                },
-                child: Text(isDelivering ? 'Delivering...' : 'Start Delivery'),
+            Text(
+              'Delivery Information',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Flexible(
+              // Use Flexible to allow this section to take the remaining space
+              child: ListView(
+                children: [
+                  Text('Delivery ID : ${widget.id_delivery}'),
+                  Text('Alamat Customer: ${widget.destinationAddress}'),
+                  SizedBox(height: 8),
+                  Text('ID Transaksi: ${widget.id_transaksi}'),
+                  SizedBox(height: 8),
+                  Text('No. Telepon: ${widget.telp_number}'),
+                  SizedBox(height: 8),
+                  Text('Payment Method: ${widget.payment_method}'),
+                  SizedBox(height: 15),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            if (isDelivering) {
+                              _startDelivery();
+                            } else {
+                              setState(() {
+                                isDelivering = true;
+                              });
+                            }
+                          },
+                          child: Text(isDelivering
+                              ? 'Delivering...'
+                              : 'Start Delivery'),
+                        ),
+                        if (isDelivering)
+                          ElevatedButton(
+                            onPressed: () {
+                              _showFinishDeliveryDialog();
+                            },
+                            child: Text("Finish Delivery"),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              if (isDelivering)
-                ElevatedButton(
-                  onPressed: () {
-                    _showFinishDeliveryDialog(); // Correctly calling the dialog method
-                  },
-                  child: Text("Finish Delivery"),
-                ),
-            ],
-          )),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -503,15 +519,17 @@ class _MapScreenState extends State<MapScreen> {
   void _showFinishDeliveryDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent closing when tapping outside
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return FinishDeliveryDialog(
           image: _image,
           onImageTaken: (newImage) {
             setState(() {
-              _image =
-                  newImage; // Update the image when photo is taken or deleted
+              _image = newImage;
             });
+          },
+          onFinish: () {
+            Navigator.pop(context, true);
           },
           id_delivery: widget.id_delivery,
           id_transaksi: widget.id_transaksi,
@@ -526,6 +544,7 @@ class _MapScreenState extends State<MapScreen> {
 class FinishDeliveryDialog extends StatefulWidget {
   final XFile? image;
   final Function(XFile?) onImageTaken;
+  final Function onFinish;
   final String id_delivery;
   final String id_transaksi;
   final String payment_method;
@@ -534,6 +553,7 @@ class FinishDeliveryDialog extends StatefulWidget {
   FinishDeliveryDialog(
       {required this.image,
       required this.onImageTaken,
+      required this.onFinish,
       required this.id_delivery,
       required this.id_transaksi,
       required this.payment_method,
@@ -729,8 +749,12 @@ class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
           child: Text('Take Photo'),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             if (CanFinish) {
+              await updateDeliveryStatus(context, widget.id_transaksi);
+              await updateTransStatus(context, widget.id_transaksi);
+              widget.onFinish();
+              Navigator.of(context).pop();
             } else {
               Navigator.of(context).pop();
             }
