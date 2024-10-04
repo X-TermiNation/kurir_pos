@@ -16,18 +16,12 @@ import 'package:qr/qr.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:ui' as ui;
 
-class CourierDashboard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Courier Delivery App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: HomeScreen(),
-    );
-  }
-}
+// class CourierDashboard extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return HomeScreen();
+//   }
+// }
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -202,7 +196,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                             if (result == true) {
-                              fetchDeliveries();
+                              setState(() {
+                                fetchDeliveries();
+                              });
                             }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(

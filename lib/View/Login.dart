@@ -93,10 +93,8 @@ class _LoginState extends State<Login> {
                     emailstr = "";
                   });
                   if (signcode == 1) {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => CourierDashboard()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => HomeScreen()));
                   } else {
                     showToast(
                         context, "Username/Password Salah! signcode:$signcode");
