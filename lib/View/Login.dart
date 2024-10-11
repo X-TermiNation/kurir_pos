@@ -41,7 +41,7 @@ class _LoginState extends State<Login> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
-        title: Text("Kasir"),
+        title: Text("Kurir"),
       ),
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
@@ -50,7 +50,7 @@ class _LoginState extends State<Login> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text(
-              'Kasir Pos',
+              'Kurir Pos',
             ),
             TextFormField(
               controller: email,

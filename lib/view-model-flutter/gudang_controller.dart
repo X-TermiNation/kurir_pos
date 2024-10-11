@@ -7,7 +7,7 @@ Future<void> getdatagudang() async {
   try {
     final dataStorage = GetStorage();
     String idcabang = dataStorage.read('id_cabang');
-    final url = 'https://d208-103-50-129-83.ngrok-free.app/gudang/$idcabang';
+    final url = 'http://192.168.1.197:3000/gudang/$idcabang';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 304 || response.statusCode == 200) {
       final jsonData = json.decode(response.body);

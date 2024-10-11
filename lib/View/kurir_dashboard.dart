@@ -83,12 +83,11 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Courier Delivery'),
         actions: [
           IconButton(
-            icon: Icon(Icons.account_circle),
+            icon: Icon(Icons.sync),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProfileScreen()),
-              );
+              setState(() {
+                fetchDeliveries();
+              });
             },
           ),
         ],
@@ -747,7 +746,8 @@ class _FinishDeliveryDialogState extends State<FinishDeliveryDialog> {
         ElevatedButton(
           onPressed: () async {
             if (CanFinish) {
-              await updateDeliveryStatus(context, widget.id_transaksi);
+              await updateDeliveryStatus(
+                  context, widget.id_transaksi, widget.id_delivery, _image);
               await updateTransStatus(context, widget.id_transaksi);
               widget.onFinish();
               Navigator.of(context).pop();
