@@ -40,6 +40,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchDeliveries() async {
+    if (_deliveries.isNotEmpty) {
+      setState(() {
+        _deliveries.clear();
+      });
+    }
     List<dynamic>? deliveries = await showDelivery(context); // Fetch deliveries
     if (deliveries != null) {
       setState(() {
@@ -85,9 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(Icons.sync),
             onPressed: () {
-              setState(() {
-                fetchDeliveries();
-              });
+              fetchDeliveries();
             },
           ),
         ],
