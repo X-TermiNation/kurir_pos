@@ -246,6 +246,7 @@ class _MapScreenState extends State<MapScreen> {
   bool isDelivering = false;
   late WebSocketService _webSocketService;
   StreamSubscription<Position>? positionStreamSubscription;
+  Timer? _statusCheckTimer;
   XFile? _image;
 
   @override
@@ -277,7 +278,8 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     positionStreamSubscription?.cancel();
-    _webSocketService.close(); // Close WebSocket connection
+    _statusCheckTimer?.cancel();
+    _webSocketService.close();
     super.dispose();
   }
 
@@ -304,6 +306,7 @@ class _MapScreenState extends State<MapScreen> {
   // Fetch route directions
   Future<void> _fetchDirections(
       double destinationLng, double destinationLat) async {
+    // OpenRouterRoute API key
     final String apiKey =
         '5b3ce3597851110001cf6248e4d9fd9aea234edf85a286746755089e';
 
@@ -324,7 +327,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-// Start delivery and track live location
+  // Start delivery and track live location
   void _startDelivery() {
     // Start sending the initial location to the server
     _sendLocationToServer(
@@ -347,12 +350,24 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       isDelivering = true; // Change state to indicate delivery has started
     });
+
+    _startStatusCheck(); // Start checking the delivery status
+  }
+
+  // Start checking delivery status periodically
+  void _startStatusCheck() {
+    _statusCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) {
+      if (isDelivering) {
+        _startDelivery();
+      }
+    });
   }
 
   // Send location to the WebSocket server
   void _sendLocationToServer(double latitude, double longitude) {
     _webSocketService.sendMessage(jsonEncode({
-      'id_transaksi': widget.id_transaksi,
+      'type': 'live_location_update',
+      'id_transaksi': widget.id_transaksi.toString(),
       'latitude': latitude,
       'longitude': longitude,
     }));
@@ -485,6 +500,7 @@ class _MapScreenState extends State<MapScreen> {
                             if (isDelivering) {
                               _startDelivery();
                             } else {
+                              _startDelivery();
                               setState(() {
                                 isDelivering = true;
                               });
@@ -499,7 +515,7 @@ class _MapScreenState extends State<MapScreen> {
                             onPressed: () {
                               _showFinishDeliveryDialog();
                             },
-                            child: Text("Finish Delivery"),
+                            child: Text('Finish Delivery'),
                           ),
                       ],
                     ),
