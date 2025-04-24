@@ -9,8 +9,8 @@ import 'package:get_storage/get_storage.dart';
 Future<List<Map<String, dynamic>>> getDiskon() async {
   final dataStorage = GetStorage();
   final id_cabangs = dataStorage.read('id_cabang');
-  final request = Uri.parse(
-      'http://192.168.1.197:3000/barang/diskonlist/$id_cabangs');
+  final request =
+      Uri.parse('http://192.168.1.197:3000/barang/diskonlist/$id_cabangs');
   final response = await http.get(request);
   final Map<String, dynamic> jsonData = json.decode(response.body);
   if (!jsonData.containsKey("data")) {
@@ -98,8 +98,7 @@ Future<void> tambahdiskon(
     };
 
     if (nama_diskon != "" && persentase_diskon != "") {
-      final url =
-          'http://192.168.1.197:3000/barang/tambahdiskon/$id_cabangs';
+      final url = 'http://192.168.1.197:3000/barang/tambahdiskon/$id_cabangs';
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -166,8 +165,7 @@ Future<void> tambahdiskon(
 void deletediskon(String id) async {
   final dataStorage = GetStorage();
   String id_cabangs = dataStorage.read('id_cabang');
-  final url =
-      'http://192.168.1.197:3000/barang/deletediskon/$id/$id_cabangs';
+  final url = 'http://192.168.1.197:3000/barang/deletediskon/$id/$id_cabangs';
   final response = await http.delete(Uri.parse(url));
 
   if (response.statusCode == 200) {

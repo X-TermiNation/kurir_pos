@@ -132,8 +132,7 @@ void addkategori(String nama_kategori, String selectedvalueJenis,
       'nama_kategori': nama_kategori,
       'id_jenis': selectedvalueJenis,
     };
-    final url =
-        'http://192.168.1.197:3000/barang/tambahkategori';
+    final url = 'http://192.168.1.197:3000/barang/tambahkategori';
     final response = await http.post(
       Uri.parse(url),
       headers: {
@@ -171,8 +170,7 @@ Future<List<Map<String, dynamic>>> getKategori() async {
 }
 
 Future<String> getFirstKategoriId() async {
-  final url =
-      'http://192.168.1.197:3000/barang/getfirstkategori';
+  final url = 'http://192.168.1.197:3000/barang/getfirstkategori';
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200 || response.statusCode == 304) {
     print('berhasil akses data kategori pertama');
