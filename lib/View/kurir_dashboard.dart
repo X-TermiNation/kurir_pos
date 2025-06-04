@@ -14,14 +14,8 @@ import 'package:kurir_pos/view-model-flutter/transaksi_controller.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:qr/qr.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:get_storage/get_storage.dart';
 import 'dart:ui' as ui;
-
-// class CourierDashboard extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return HomeScreen();
-//   }
-// }
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -31,6 +25,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _deliveries = [];
   Map<String, Map<String, dynamic>?> _transactions = {};
+  final rupiahFormat = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
   // final TextEditingController _addressController = TextEditingController();
 
   @override
@@ -97,40 +96,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          //search bar for location testing
-          // Padding(
-          //   padding: const EdgeInsets.all(8.0),
-          //   child: TextField(
-          //     controller: _addressController,
-          //     decoration: InputDecoration(
-          //       labelText: 'Enter Address',
-          //       suffixIcon: IconButton(
-          //         icon: Icon(Icons.search),
-          //         onPressed: () async {
-          //           String address = _addressController.text;
-          //           Position? currentLocation = await fetchCurrentLocation();
-          //           if (currentLocation != null) {
-          //             await Navigator.push(
-          //               context,
-          //               MaterialPageRoute(
-          //                 builder: (context) => MapScreen(
-          //                   currentLocation: currentLocation,
-          //                   destinationAddress: address,
-          //                   telp_number: "#",
-          //                   id_transaksi: "#",
-          //                 ),
-          //               ),
-          //             );
-          //           } else {
-          //             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          //               content: Text('Could not access location.'),
-          //             ));
-          //           }
-          //         },
-          //       ),
-          //     ),
-          //   ),
-          // ),
           Expanded(
             child: _deliveries.isEmpty
                 ? Center(
@@ -146,68 +111,157 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (!_transactions.containsKey(transactionId)) {
                         fetchTransaction(transactionId);
                       }
-                      // Get payment method if transaction data is available
 
                       String paymentMethod = _transactions[transactionId]
                               ?["payment_method"] ??
                           "N/A";
 
                       String grandtotal = "N/A";
-
                       if (_transactions[transactionId]?["grand_total"] !=
                           null) {
                         double grandTotal = double.parse(
                             _transactions[transactionId]?["grand_total"]
                                     .toString() ??
                                 "0");
-                        grandtotal = grandTotal.toString();
+                        grandtotal = grandTotal
+                            .toStringAsFixed(2); // format to 2 decimals
                       }
 
-                      return ListTile(
-                        title: Text('Delivery #${delivery["_id"]}'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Status: ${delivery["status"]}'),
-                            Text(
-                                'Alamat Customer: ${delivery["alamat_tujuan"]}'),
-                            Text(
-                                'No.Telepon Customer: ${delivery["no_telp_cust"]}'),
-                            Text('ID Transaksi: ${delivery["transaksi_id"]}'),
-                            Text('Payment Method: $paymentMethod'),
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.shade200,
+                              offset: Offset(0, 2),
+                              blurRadius: 4,
+                            ),
                           ],
                         ),
-                        trailing: Icon(Icons.chevron_right),
-                        onTap: () async {
-                          Position? currentLocation =
-                              await fetchCurrentLocation();
-                          if (currentLocation != null) {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MapScreen(
-                                  currentLocation: currentLocation,
-                                  destinationAddress:
-                                      "${delivery["alamat_tujuan"]}",
-                                  id_delivery: "${delivery["_id"]}",
-                                  telp_number: "${delivery["no_telp_cust"]}",
-                                  id_transaksi: "${delivery["transaksi_id"]}",
-                                  payment_method: "$paymentMethod",
-                                  grand_total: "$grandtotal",
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () async {
+                            Position? currentLocation =
+                                await fetchCurrentLocation();
+                            if (currentLocation != null) {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MapScreen(
+                                    currentLocation: currentLocation,
+                                    destinationAddress:
+                                        delivery["alamat_tujuan"],
+                                    id_delivery: delivery["_id"],
+                                    telp_number: delivery["no_telp_cust"],
+                                    id_transaksi: delivery["transaksi_id"],
+                                    payment_method: paymentMethod,
+                                    grand_total: grandtotal,
+                                  ),
                                 ),
-                              ),
-                            );
-                            if (result == true) {
-                              setState(() {
-                                fetchDeliveries();
-                              });
+                              );
+                              if (result == true) {
+                                setState(() {
+                                  fetchDeliveries();
+                                });
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content:
+                                        Text('Could not access location.')),
+                              );
                             }
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Could not access location.'),
-                            ));
-                          }
-                        },
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title and grand total on one row
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Delivery #${delivery["_id"]}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Total: ${rupiahFormat.format(double.tryParse(grandtotal) ?? 0)}',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.green[700]),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Chip(
+                                      label: Text(
+                                        delivery["status"],
+                                        style: TextStyle(color: Colors.white),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      backgroundColor:
+                                          _getStatusColor(delivery["status"]),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      paymentMethod,
+                                      style: TextStyle(
+                                          fontStyle: FontStyle.italic),
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 8),
+
+                              // Customer details with icons
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on,
+                                      size: 16, color: Colors.grey[600]),
+                                  SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      delivery["alamat_tujuan"],
+                                      style: TextStyle(color: Colors.grey[800]),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.phone,
+                                      size: 16, color: Colors.grey[600]),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    delivery["no_telp_cust"],
+                                    style: TextStyle(color: Colors.grey[800]),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -215,6 +269,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+}
+
+// Helper function for status chip color
+Color _getStatusColor(String status) {
+  switch (status.toLowerCase()) {
+    case 'delivered':
+      return Colors.green;
+    case 'pending':
+      return Colors.orange;
+    case 'cancelled':
+      return Colors.red;
+    default:
+      return Colors.blueGrey;
   }
 }
 
@@ -242,6 +310,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   List<LatLng> polylinePoints = [];
+  LatLng? destinationPosition;
   LatLng? currentPosition;
   bool isDelivering = false;
   late WebSocketService _webSocketService;
@@ -261,13 +330,11 @@ class _MapScreenState extends State<MapScreen> {
 
     _webSocketService = WebSocketService('ws://192.168.1.197:8080/ws');
 
-    // Listen for live location updates from the WebSocket server
     _webSocketService.onMessage.listen((message) {
       final data = jsonDecode(message);
       if (data['type'] == 'live_location_update') {
         print(
             'Received live position: Latitude: ${data['latitude']}, Longitude: ${data['longitude']}');
-        // Update current position to reflect the received data
         setState(() {
           currentPosition = LatLng(data['latitude'], data['longitude']);
         });
@@ -283,13 +350,15 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
-  // Get destination coordinates
+// Get destination coordinates
   Future<void> _getDestinationCoordinates(String address) async {
     try {
       List<Location> locations = await locationFromAddress(address);
       if (locations.isNotEmpty) {
         double destinationLat = locations.first.latitude;
         double destinationLng = locations.first.longitude;
+
+        destinationPosition = LatLng(destinationLat, destinationLng);
         await _fetchDirections(destinationLng, destinationLat);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -303,10 +372,9 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Fetch route directions
+// Fetch route directions
   Future<void> _fetchDirections(
       double destinationLng, double destinationLat) async {
-    // OpenRouterRoute API key
     final String apiKey =
         '5b3ce3597851110001cf6248e4d9fd9aea234edf85a286746755089e';
 
@@ -327,34 +395,34 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Start delivery and track live location
+// Start delivery and track live location
   void _startDelivery() {
-    // Start sending the initial location to the server
     _sendLocationToServer(
-        widget.currentLocation.latitude, widget.currentLocation.longitude);
+      widget.currentLocation.latitude,
+      widget.currentLocation.longitude,
+      includeDestination: true,
+    );
 
-    // Listen for live location updates
     positionStreamSubscription = Geolocator.getPositionStream(
       locationSettings: LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 2, // Updates every 2 meters
+        distanceFilter: 2,
       ),
     ).listen((Position position) {
       setState(() {
         currentPosition = LatLng(position.latitude, position.longitude);
       });
-      // Send updated position to the server
       _sendLocationToServer(position.latitude, position.longitude);
     });
 
     setState(() {
-      isDelivering = true; // Change state to indicate delivery has started
+      isDelivering = true;
     });
 
-    _startStatusCheck(); // Start checking the delivery status
+    _startStatusCheck();
   }
 
-  // Start checking delivery status periodically
+// Status check timer
   void _startStatusCheck() {
     _statusCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       if (isDelivering) {
@@ -363,14 +431,25 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  // Send location to the WebSocket server
-  void _sendLocationToServer(double latitude, double longitude) {
-    _webSocketService.sendMessage(jsonEncode({
+  void _sendLocationToServer(double latitude, double longitude,
+      {bool includeDestination = false}) {
+    final dataStorage = GetStorage();
+    String id_cabang = dataStorage.read('id_cabang');
+
+    final message = {
       'type': 'live_location_update',
       'id_transaksi': widget.id_transaksi.toString(),
       'latitude': latitude,
       'longitude': longitude,
-    }));
+      'id_cabang': id_cabang,
+    };
+
+    if (includeDestination && destinationPosition != null) {
+      message['latitude_tujuan'] = destinationPosition!.latitude;
+      message['longitude_tujuan'] = destinationPosition!.longitude;
+    }
+
+    _webSocketService.sendMessage(jsonEncode(message));
   }
 
   @override

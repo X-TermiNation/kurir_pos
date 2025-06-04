@@ -9,99 +9,101 @@ String emailstr = "";
 class Login extends StatefulWidget {
   const Login({super.key});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   @override
   State<Login> createState() => _LoginState();
 }
 
 class _LoginState extends State<Login> {
-  TextEditingController email = new TextEditingController();
-  TextEditingController password = new TextEditingController();
+  final TextEditingController email = TextEditingController();
+  final TextEditingController password = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text("Kurir"),
+        title: const Text("Kurir"),
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Kurir Pos',
-            ),
-            TextFormField(
-              controller: email,
-              onChanged: (value) {
-                setState(() {
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              const Text(
+                'Kurir Pos',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 40),
+              TextFormField(
+                controller: email,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email),
+                ),
+                onChanged: (value) {
                   emailstr = value;
-                });
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Field tidak boleh kosong';
-                }
-                return null;
-              },
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: 'Email',
-              ),
-            ),
-            TextFormField(
-              controller: password,
-              obscureText: true,
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: 'Enter your Password',
-              ),
-              validator: (value) {
-                if (value == null) {
-                  showToast(context, 'Field password tidak boleh kosong!');
-                }
-                return null;
-              },
-            ),
-            FilledButton(
-                onPressed: () async {
-                  int signcode = await loginbtn(email.text, password.text);
-                  setState(() {
-                    email.text = "";
-                    password.text = "";
-                    emailstr = "";
-                  });
-                  if (signcode == 1) {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => HomeScreen()));
-                  } else {
-                    showToast(
-                        context, "Username/Password Salah! signcode:$signcode");
-                  }
                 },
-                child: Text("Login"))
-          ],
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Email tidak boleh kosong';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: password,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Password tidak boleh kosong';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 30),
+              Tooltip(
+                message: 'Masuk ke dalam aplikasi',
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        int signcode =
+                            await loginbtn(email.text, password.text);
+                        if (signcode == 1) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => HomeScreen()),
+                          );
+                        } else {
+                          showToast(context,
+                              "Username/Password Salah! Kode: $signcode");
+                        }
+
+                        setState(() {
+                          email.clear();
+                          password.clear();
+                          emailstr = "";
+                        });
+                      }
+                    },
+                    child: const Text("Login"),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
