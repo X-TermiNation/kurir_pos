@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:kurir_pos/View/Login.dart';
+import '../api_config.dart';
 
 void main() async {
+  await ApiConfig().init();
   await GetStorage.init();
   runApp(const MyApp());
 }

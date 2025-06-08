@@ -328,7 +328,8 @@ class _MapScreenState extends State<MapScreen> {
       widget.currentLocation.longitude,
     );
 
-    _webSocketService = WebSocketService('ws://192.168.1.197:8080/ws');
+    _webSocketService =
+        WebSocketService('wss://serverpos-production.up.railway.app/ws');
 
     _webSocketService.onMessage.listen((message) {
       final data = jsonDecode(message);
@@ -425,8 +426,11 @@ class _MapScreenState extends State<MapScreen> {
 // Status check timer
   void _startStatusCheck() {
     _statusCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) {
-      if (isDelivering) {
-        _startDelivery();
+      if (isDelivering && currentPosition != null) {
+        _sendLocationToServer(
+          currentPosition!.latitude,
+          currentPosition!.longitude,
+        );
       }
     });
   }
@@ -449,7 +453,10 @@ class _MapScreenState extends State<MapScreen> {
       message['longitude_tujuan'] = destinationPosition!.longitude;
     }
 
-    _webSocketService.sendMessage(jsonEncode(message));
+    final jsonMsg = jsonEncode(message);
+    print("Sending to WebSocket: $jsonMsg");
+
+    _webSocketService.sendMessage(jsonMsg);
   }
 
   @override
